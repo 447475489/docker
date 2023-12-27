@@ -1,0 +1,99 @@
+# version: "3.9"
+services:
+  bussale:
+    image: registry.cn-hangzhou.aliyuncs.com/cty_jtsyb/bussale:${VERSION}
+    ports:
+      - "9000:9000"
+    volumes:
+      - ${WORK_PATH}/BusSale/conf/:/home/cty/BusSale/conf/
+      - ${WORK_PATH}/BusSale/logs/:/home/cty/BusSale/logs/
+    restart: always
+    network_mode: host
+    healthcheck: # 添加健康检测
+      test: ["CMD", "curl", "-f", "http://localhost:9000/testconnect"]
+      interval: 1m30s
+      timeout: 3s
+      retries: 3
+      # start_period: 40s
+      
+# 健康检查
+# healthcheck 支持下列选项：
+# interval=<间隔>：两次健康检查的间隔，默认为 30 秒，单位(h/m/s)；
+# timeout=<时长>：健康检查命令运行超时时间，如果超过这个时间，本次健康检查就被视为失败，默认 30 秒，单位(h/m/s)；
+# retries=<次数>：当连续失败指定次数后，则将容器状态视为 unhealthy，默认 3 次。
+# start-period=<初始化>: 应用的启动的初始化时间，在启动过程中的健康检查失效不会计入，默认 0 秒（从 V17.05 引入）。
+# 和 CMD, ENTRYPOINT 一样，HEALTHCHECK 只可以出现一次，如果写了多个，只有最后一个生效。
+  bussync:
+    image: registry.cn-hangzhou.aliyuncs.com/cty_jtsyb/bussync:${VERSION}
+    ports:
+      - "9001:9001"
+    volumes:
+      - ${WORK_PATH}/BusSync/conf/:/home/cty/BusSync/conf/
+      - ${WORK_PATH}/BusSync/logs/:/home/cty/BusSync/logs/
+    restart: always
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/testconnect"]
+      interval: 1m30s
+      timeout: 3s
+      retries: 3
+
+# bstStation：倍施特接口同步服务
+  bstStation:
+    image: registry.cn-hangzhou.aliyuncs.com/cty_jtsyb/bst_station:1.0
+    ports:
+      - "28528:28528"
+    volumes:
+      - /home/Bst118/bstStation/conf/db.properties:/usr/local/tomcat-7.0/webapps/bstStation/WEB-INF/classes/conf/db.properties
+      - /home/Bst118/bstStation/logs/:/usr/local/tomcat-7.0/logs/
+    restart: always
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:28528/bstStation"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+# e-front：倍施特站务系统电子客票接口
+  e-front:
+    image: registry.cn-hangzhou.aliyuncs.com/cty_jtsyb/e-front:1.0
+    ports:
+      - "11029:11029"
+    volumes:
+      - /home/Bst118/e-front/config/application-pro.properties:/home/Bst118/e-front/config/application-pro.properties
+      - /home/Bst118/e-front/logs/:/home/Bst118/e-front/logs/
+    restart: always
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11029"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+# station-openapi-service：倍施特站务系统网售接口
+  station-openapi-service:
+    image: registry.cn-hangzhou.aliyuncs.com/cty_jtsyb/station-openapi-service:1.0
+    ports:
+      - "28520:28520"
+    volumes:
+      - /home/Bst118/station-openapi-service/logs/:/home/Bst118/station-openapi-service/logs/ \
+      - /home/Bst118/station-openapi-service/config/application-mysql.properties:/home/Bst118/station-openapi-service/config/application-mysql.properties \
+      - /home/Bst118/station-openapi-service/config/application-sqlserver.properties:/home/Bst118/station-openapi-service/config/application-sqlserver.properties \
+      - /home/Bst118/station-openapi-service/config/application.properties:/home/Bst118/station-openapi-service/config/application.properties \
+    restart: always
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:28520/openapi/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+# 对于不健康的容器Docker没有提供自动重启机制,GitHub上提供了一个Auto Heal容器可以保证自动重启本机上的unhealthy容器。
+# Autoheal容器是一个独立的容器,它可以监控本机上的某一个容器或者所有容器,根据容器的健康状态来自动重启不健康的容器。
+  autoheal:
+    restart: always
+    image: willfarrell/autoheal
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=all # 监视所有正在运行的容器。
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+# docker inspect --format="{{json .State.Health}}" docker-bussale-1 | jq

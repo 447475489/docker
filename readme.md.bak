@@ -1,0 +1,15 @@
+<!--
+ * @Author: Tongxing
+ * @Date: 2023-12-06 14:58:42
+ * @LastEditTime: 2023-12-06 14:58:53
+ * @LastEditors: Tongxing
+ * @Description: 
+ * @FilePath: \workspace\docker\made.md
+ * 可以输入预定的版权声明、个性签名、空行等
+-->
+docker run -d \
+    --name autoheal \
+    --restart=always \
+    -e AUTOHEAL_CONTAINER_LABEL=all \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    willfarrell/autoheal
